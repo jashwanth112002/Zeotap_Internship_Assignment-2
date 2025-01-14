@@ -1,0 +1,156 @@
+/app.py:/ from flask import Flask, request, jsonify
+import random
+
+app = Flask(_name_)
+
+# A simple function to mimic a chatbot response
+def get_chatbot_response(question):
+    # For now, we're just responding with a simple random reply
+    responses = [
+        "I'm sorry, I didn't understand that.",
+        "Can you clarify your question?",
+        "I'm here to help!",
+        "That's a great question!"
+    ]
+    return random.choice(responses)
+
+@app.route('/')
+def home():
+    return "Welcome to the chatbot API!"
+
+@app.route('/ask', methods=['POST'])
+def ask():
+    data = request.get_json()  # Get the data from the POST request
+    user_question = data.get('question')
+
+    # Get a response from the chatbot function
+    answer = get_chatbot_response(user_question)
+
+    # Return the response as JSON
+    return jsonify({'answer': answer})
+
+if _name_ == "_main_":
+    app.run(debug=True)
+/utils.py/ import requests
+from bs4 import BeautifulSoup
+
+# URLs of the documentation
+DOC_URLS = {
+    "Segment": "https://segment.com/docs/?ref=nav",
+    "mParticle": "https://docs.mparticle.com/",
+    "Lytics": "https://docs.lytics.com/",
+    "Zeotap": "https://docs.zeotap.com/home/en-us/"
+}
+
+def fetch_and_parse_docs():
+    docs = []
+    for platform, url in DOC_URLS.items():
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        for heading in soup.find_all(['h1', 'h2', 'h3']):
+            content = heading.find_next_sibling('p') or heading.text
+            docs.append({
+                'title': f"{platform} - {heading.text}",
+                'content': content if isinstance(content, str) else content.text
+            })
+    return docs
+/index.html:/ <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatbot</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="chat-container">
+    <h1>Chatbot</h1>
+    <div id="chatbox" class="chatbox"></div>
+    <input type="text" id="user-input" placeholder="Ask a question...">
+    <button id="ask-btn">Ask</button>
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
+/styles.css/ body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f9;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+.chat-container {
+  width: 100%;
+  max-width: 500px;
+  background-color: white;
+  padding: 20px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+.chat-box {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+}
+
+.user-input {
+  display: flex;
+}
+
+#question {
+  flex: 1;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  margin-left: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+.response {
+  font-size: 16px;
+  margin: 10px 0;
+  color: #333;
+}
+/script.js/ document.getElementById('ask-btn').addEventListener('click', function() {
+    const userInput = document.getElementById('user-input').value;
+    if (userInput.trim() === "") return;
+  
+    // Send the user's question to the Flask server via POST request
+    fetch('/ask', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ question: userInput })
+    })
+    .then(response => response.json())
+    .then(data => {
+      // Display the chatbot's response in the chatbox
+      const chatbox = document.getElementById('chatbox');
+      chatbox.innerHTML += <p><strong>You:</strong> ${userInput}</p>;
+      chatbox.innerHTML += <p><strong>Chatbot:</strong> ${data.answer}</p>;
+      document.getElementById('user-input').value = ''; // Clear the input field
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+  });
